@@ -33,11 +33,13 @@ namespace corecache {
 // Policy selection is a compile-time template parameter -- no vtables, no
 // runtime dispatch on a policy tag -- which is both more idiomatic C++ and
 // lets the compiler fully inline policy operations into Shard's hot paths.
-template <typename Key, typename Value, typename Policy = LruPolicy<Key>,
+template <typename Key,
+          typename Value,
+          typename Policy = LruPolicy<Key>,
           typename Hash = std::hash<Key>>
     requires EvictionPolicy<Policy, Key>
 class Cache {
-public:
+  public:
     using ShardT = Shard<Key, Value, Policy, Hash>;
 
     // Aliased (not redefined) so Shard -- which increments these counters
@@ -80,9 +82,7 @@ public:
 
     // Zero-copy read: returns the entry's shared_ptr<Value> directly, or
     // nullptr on a miss. The only get() usable with a move-only Value.
-    std::shared_ptr<Value> get_shared(const Key& key) {
-        return shard_for(key).get_shared(key);
-    }
+    std::shared_ptr<Value> get_shared(const Key& key) { return shard_for(key).get_shared(key); }
 
     // Insert or overwrite. Takes Value by value and moves it into the
     // entry -- real move semantics, no unnecessary copies.
@@ -144,7 +144,7 @@ public:
         return stats_;
     }
 
-private:
+  private:
     static std::size_t default_shard_count() {
         return std::max<std::size_t>(1, std::thread::hardware_concurrency());
     }

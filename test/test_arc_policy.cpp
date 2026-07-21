@@ -1,11 +1,11 @@
-#include "corecache/policy.hpp"
-
 #include <gtest/gtest.h>
 
 #include <optional>
 #include <random>
 #include <unordered_map>
 #include <vector>
+
+#include "corecache/policy.hpp"
 
 namespace {
 

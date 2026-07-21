@@ -1,8 +1,8 @@
-#include "corecache/policy.hpp"
-
 #include <gtest/gtest.h>
 
 #include <vector>
+
+#include "corecache/policy.hpp"
 
 namespace {
 

@@ -38,7 +38,7 @@ concept EvictionPolicy = requires(P p, const K& key, typename P::Node& node) {
 // with ArcPolicy where classification is meaningful.
 template <typename Key>
 class LruPolicy {
-public:
+  public:
     struct Node {
         Key key{};
         Node* prev = nullptr;
@@ -76,7 +76,7 @@ public:
     [[nodiscard]] std::size_t size() const noexcept { return list_.size(); }
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
 
-private:
+  private:
     detail::IntrusiveList<Node> list_;
     std::size_t capacity_;
 };
@@ -103,7 +103,7 @@ private:
 // production caches make. That tradeoff is deliberate, not an oversight.
 template <typename Key>
 class ArcPolicy {
-public:
+  public:
     struct Node {
         Key key{};
         Node* prev = nullptr;
@@ -200,7 +200,7 @@ public:
     [[nodiscard]] std::size_t p() const noexcept { return p_; }
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
 
-private:
+  private:
     enum class Where { kT1, kT2, kB1, kB2 };
 
     struct GhostNode {
@@ -211,7 +211,7 @@ private:
 
     struct ListLocation {
         Where where;
-        Node* node = nullptr;              // valid iff where is kT1 or kT2 (owned by caller's Entry)
+        Node* node = nullptr;  // valid iff where is kT1 or kT2 (owned by caller's Entry)
         std::unique_ptr<GhostNode> ghost;  // valid iff where is kB1 or kB2 (owned here)
     };
 

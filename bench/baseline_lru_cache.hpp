@@ -17,7 +17,7 @@ namespace corecache::bench {
 // ceiling, never as a real alternative.
 template <typename Key, typename Value>
 class BaselineLruCache {
-public:
+  public:
     explicit BaselineLruCache(std::size_t capacity) : capacity_(capacity) {}
 
     std::optional<Value> get(const Key& key) {
@@ -57,7 +57,7 @@ public:
         return map_.size();
     }
 
-private:
+  private:
     using ListT = std::list<std::pair<Key, Value>>;
 
     std::size_t capacity_;

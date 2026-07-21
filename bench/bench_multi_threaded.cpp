@@ -137,13 +137,17 @@ using CorecacheLru = corecache::Cache<int, int>;
 
 void BM_MT_CorecacheLru_90Get10Put(benchmark::State& state) {
     RunSharedBenchmark<CorecacheLru>(
-        state, [] { return new CorecacheLru(kCapacity, kCorecacheShardCount); }, /*put_percent=*/10);
+        state,
+        [] { return new CorecacheLru(kCapacity, kCorecacheShardCount); },
+        /*put_percent=*/10);
 }
 BENCHMARK(BM_MT_CorecacheLru_90Get10Put)->ThreadRange(1, 16)->UseRealTime();
 
 void BM_MT_CorecacheLru_50Get50Put(benchmark::State& state) {
     RunSharedBenchmark<CorecacheLru>(
-        state, [] { return new CorecacheLru(kCapacity, kCorecacheShardCount); }, /*put_percent=*/50);
+        state,
+        [] { return new CorecacheLru(kCapacity, kCorecacheShardCount); },
+        /*put_percent=*/50);
 }
 BENCHMARK(BM_MT_CorecacheLru_50Get50Put)->ThreadRange(1, 16)->UseRealTime();
 
@@ -155,13 +159,17 @@ using CorecacheArc = corecache::Cache<int, int, corecache::ArcPolicy<int>>;
 
 void BM_MT_CorecacheArc_90Get10Put(benchmark::State& state) {
     RunSharedBenchmark<CorecacheArc>(
-        state, [] { return new CorecacheArc(kCapacity, kCorecacheShardCount); }, /*put_percent=*/10);
+        state,
+        [] { return new CorecacheArc(kCapacity, kCorecacheShardCount); },
+        /*put_percent=*/10);
 }
 BENCHMARK(BM_MT_CorecacheArc_90Get10Put)->ThreadRange(1, 16)->UseRealTime();
 
 void BM_MT_CorecacheArc_50Get50Put(benchmark::State& state) {
     RunSharedBenchmark<CorecacheArc>(
-        state, [] { return new CorecacheArc(kCapacity, kCorecacheShardCount); }, /*put_percent=*/50);
+        state,
+        [] { return new CorecacheArc(kCapacity, kCorecacheShardCount); },
+        /*put_percent=*/50);
 }
 BENCHMARK(BM_MT_CorecacheArc_50Get50Put)->ThreadRange(1, 16)->UseRealTime();
 

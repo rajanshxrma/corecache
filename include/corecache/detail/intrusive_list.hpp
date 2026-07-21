@@ -17,7 +17,7 @@ namespace corecache::detail {
 // under which all mutating list operations happen.
 template <typename NodeT>
 class IntrusiveList {
-public:
+  public:
     IntrusiveList() = default;
     IntrusiveList(const IntrusiveList&) = delete;
     IntrusiveList& operator=(const IntrusiveList&) = delete;
@@ -80,7 +80,7 @@ public:
         push_front(node);
     }
 
-private:
+  private:
     NodeT* head_ = nullptr;
     NodeT* tail_ = nullptr;
     std::size_t size_ = 0;

@@ -1,10 +1,10 @@
-#include "corecache/cache.hpp"
-
 #include <gtest/gtest.h>
 
 #include <atomic>
 #include <memory>
 #include <string>
+
+#include "corecache/cache.hpp"
 
 namespace {
 
@@ -31,7 +31,7 @@ std::atomic<int> DtorCounter::live_count{0};
 std::atomic<int> DtorCounter::destroy_count{0};
 
 class CacheApiTest : public ::testing::Test {
-protected:
+  protected:
     void SetUp() override {
         DtorCounter::live_count = 0;
         DtorCounter::destroy_count = 0;

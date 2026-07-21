@@ -1,6 +1,3 @@
-#include "corecache/cache.hpp"
-#include "corecache/detail/atomic_shared_ptr.hpp"
-
 #include <gtest/gtest.h>
 
 #include <atomic>
@@ -8,6 +5,9 @@
 #include <random>
 #include <thread>
 #include <vector>
+
+#include "corecache/cache.hpp"
+#include "corecache/detail/atomic_shared_ptr.hpp"
 
 #ifndef CORECACHE_STRESS_OPS
 #define CORECACHE_STRESS_OPS 200000
@@ -31,8 +31,7 @@ TEST(ConcurrencyStress, ReportsAtomicSharedPtrLockFreeStatus) {
     corecache::detail::AtomicSharedPtr<int> probe;
     const bool lock_free = probe.is_lock_free();
     std::cerr << "[corecache] AtomicSharedPtr<int>::is_lock_free() = " << std::boolalpha
-              << lock_free
-              << " (std::atomic<std::shared_ptr<T>> does not compile on this libc++;"
+              << lock_free << " (std::atomic<std::shared_ptr<T>> does not compile on this libc++;"
               << " see detail/atomic_shared_ptr.hpp)" << std::endl;
     SUCCEED();
 }
@@ -104,7 +103,7 @@ void RunDisjointKeyspaceStress(const char* label) {
     constexpr int kTotalKeys = kThreads * kKeysPerThread;
 
     corecache::Cache<int, int, Policy> cache(static_cast<std::size_t>(kTotalKeys) * 4,
-                                              /*shard_count=*/8);
+                                             /*shard_count=*/8);
 
     std::vector<std::thread> threads;
     threads.reserve(kThreads);
@@ -133,8 +132,7 @@ void RunDisjointKeyspaceStress(const char* label) {
     }
 
     EXPECT_EQ(corruption_count.load(), 0)
-        << label << ": cross-thread data corruption detected on " << kTotalKeys
-        << " disjoint keys";
+        << label << ": cross-thread data corruption detected on " << kTotalKeys << " disjoint keys";
 }
 
 TEST(ConcurrencyStress, DisjointKeyspaceNoCorruptionLru) {

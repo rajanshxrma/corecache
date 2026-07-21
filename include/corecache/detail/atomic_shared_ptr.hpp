@@ -31,7 +31,7 @@ namespace corecache::detail {
 // assuming either way.
 template <typename T>
 class AtomicSharedPtr {
-public:
+  public:
     AtomicSharedPtr() noexcept = default;
     explicit AtomicSharedPtr(std::shared_ptr<T> initial) noexcept : value_(std::move(initial)) {}
 
@@ -47,11 +47,9 @@ public:
         std::atomic_store_explicit(&value_, std::move(desired), order);
     }
 
-    [[nodiscard]] bool is_lock_free() const noexcept {
-        return std::atomic_is_lock_free(&value_);
-    }
+    [[nodiscard]] bool is_lock_free() const noexcept { return std::atomic_is_lock_free(&value_); }
 
-private:
+  private:
     mutable std::shared_ptr<T> value_;
 };
 

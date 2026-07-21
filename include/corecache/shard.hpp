@@ -5,6 +5,7 @@
 #include <cstdint>
 #include <functional>
 #include <memory>
+#include <mutex>
 #include <optional>
 #include <shared_mutex>
 #include <unordered_map>
@@ -57,7 +58,7 @@ struct Entry : Policy::Node {
 //     lookup itself is still a lock (shared, but a lock).
 template <typename Key, typename Value, typename Policy, typename Hash = std::hash<Key>>
 class Shard {
-public:
+  public:
     explicit Shard(std::size_t capacity) : policy_(capacity) {}
 
     Shard(const Shard&) = delete;
@@ -124,14 +125,13 @@ public:
         if (auto it = map_.find(key); it != map_.end()) {
             EntryT* entry = it->second.get();
             entry->value.store(std::make_shared<Value>(std::move(value)),
-                                std::memory_order_release);
+                               std::memory_order_release);
             policy_.touch(entry);
             return;
         }
 
         auto classification = policy_.classify(key);
-        auto new_entry =
-            std::make_unique<EntryT>(key, std::make_shared<Value>(std::move(value)));
+        auto new_entry = std::make_unique<EntryT>(key, std::make_shared<Value>(std::move(value)));
         EntryT* raw = new_entry.get();
 
         auto* victim = policy_.admit(raw, classification);
@@ -187,7 +187,7 @@ public:
     // contending on the SAME shard ever touch the same cache line.
     [[nodiscard]] const CacheStats& local_stats() const noexcept { return stats_; }
 
-private:
+  private:
     mutable std::shared_mutex mutex_;
     std::unordered_map<Key, std::unique_ptr<Entry<Key, Value, Policy>>, Hash> map_;
     Policy policy_;

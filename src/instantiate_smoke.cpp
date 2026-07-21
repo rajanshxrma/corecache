@@ -4,9 +4,9 @@
 // fully instantiate the template bodies at least once, surfacing any
 // warnings/errors that would otherwise stay latent until a consumer
 // happens to instantiate the same combination.
-#include "corecache/cache.hpp"
-
 #include <string>
+
+#include "corecache/cache.hpp"
 
 template class corecache::Cache<int, int, corecache::LruPolicy<int>>;
 template class corecache::Cache<int, int, corecache::ArcPolicy<int>>;

@@ -1,9 +1,9 @@
 // Minimal end-to-end usage of corecache: an LRU cache and an ARC cache,
 // each populated, read back, and reported on.
-#include "corecache/cache.hpp"
-
 #include <cstdio>
 #include <string>
+
+#include "corecache/cache.hpp"
 
 int main() {
     // Default policy is LruPolicy; 4 shards here for a deterministic demo
