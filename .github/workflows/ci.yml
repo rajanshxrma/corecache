@@ -1,0 +1,122 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions: {}
+
+jobs:
+  build-and-test:
+    name: build-and-test (${{ matrix.compiler }})
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - compiler: gcc-13
+            cc: gcc-13
+            cxx: g++-13
+          - compiler: clang-17
+            cc: clang-17
+            cxx: clang++-17
+    env:
+      CC: ${{ matrix.cc }}
+      CXX: ${{ matrix.cxx }}
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ${{ matrix.cc }} ${{ matrix.cxx == 'g++-13' && 'g++-13' || 'clang-17' }}
+
+      - name: Configure
+        run: cmake --preset default -B build
+
+      - name: Build
+        run: cmake --build build -j
+
+      - name: Test
+        run: ctest --test-dir build --output-on-failure
+
+  tsan:
+    name: tsan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Configure
+        run: cmake --preset tsan -B build-tsan -DCORECACHE_STRESS_OPS=20000
+
+      - name: Build
+        run: cmake --build build-tsan -j
+
+      # Hard gate: any "WARNING: ThreadSanitizer: data race" fails the job.
+      # Reduced op count vs. the default preset -- TSan's instrumentation
+      # overhead is 5-15x, and this still runs the exact same code paths.
+      - name: Test under ThreadSanitizer
+        env:
+          TSAN_OPTIONS: halt_on_error=1
+        run: ctest --test-dir build-tsan --output-on-failure
+
+  bench:
+    name: bench
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    continue-on-error: true
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Configure
+        run: cmake --preset release -B build-release
+
+      - name: Build
+        run: cmake --build build-release -j
+
+      - name: Run multi-threaded benchmark
+        run: |
+          ./build-release/bench/corecache_bench_multi \
+            --benchmark_format=json \
+            --benchmark_out=bench_multi_results.json \
+            --benchmark_min_time=1s
+
+      - name: Upload benchmark results
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa9 # v4.6.2
+        with:
+          name: bench-multi-results
+          path: bench_multi_results.json
+
+  lint:
+    name: lint
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - name: Clone the code
+        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+
+      - name: Install clang-format
+        run: sudo apt-get update && sudo apt-get install -y clang-format-17
+
+      - name: Check formatting
+        run: |
+          find include src test bench examples \
+            \( -name '*.hpp' -o -name '*.cpp' \) \
+            -exec clang-format-17 --dry-run --Werror {} +
