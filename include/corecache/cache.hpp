@@ -101,6 +101,20 @@ public:
         return total;
     }
 
+    // Introspection: per-shard resident counts, in shard-index order.
+    // Useful for observing distribution quality and for tests/metrics --
+    // not part of the core get/put/erase contract.
+    [[nodiscard]] std::vector<std::size_t> shard_sizes() const {
+        std::vector<std::size_t> sizes;
+        sizes.reserve(shards_.size());
+        for (const auto& shard : shards_) {
+            sizes.push_back(shard->size());
+        }
+        return sizes;
+    }
+
+    [[nodiscard]] std::size_t shard_count() const noexcept { return shards_.size(); }
+
     [[nodiscard]] std::size_t capacity() const noexcept { return capacity_; }
 
     void clear() {

@@ -68,6 +68,7 @@ public:
     std::shared_ptr<Value> get_shared(const Key& key) {
         using EntryT = Entry<Key, Value, Policy>;
         EntryT* entry = nullptr;
+        std::shared_ptr<Value> value;
         {
             std::shared_lock read_lock(mutex_);
             auto it = map_.find(key);
@@ -77,19 +78,28 @@ public:
             }
             entry = it->second.get();
             stats_.hits.fetch_add(1, std::memory_order_relaxed);
+
+            // The value read itself: a single atomic acquire-load handing
+            // back a fully-formed shared_ptr, no torn reads regardless of
+            // internal lock-free-ness -- that's the literal, narrowly-
+            // scoped lock-free claim this library makes. It still happens
+            // while the shared lock is held, though: the lock isn't
+            // protecting the load's atomicity (the load is already
+            // atomic), it's what keeps `entry` itself alive. Without it, a
+            // concurrent put() could evict and destroy this exact Entry
+            // between releasing the lock and dereferencing `entry` here --
+            // a real use-after-free, not a benign race.
+            value = entry->value.load(std::memory_order_acquire);
+            entry->tick.fetch_add(1, std::memory_order_relaxed);
         }
-        // Lock-free hit path: entry was found under the shared lock and is
-        // pinned alive by the shared_ptr we're about to copy out of it (see
-        // the reclamation reasoning in the README) -- reading its value
-        // needs no lock at all.
-        std::shared_ptr<Value> value = entry->value.load(std::memory_order_acquire);
-        entry->tick.fetch_add(1, std::memory_order_relaxed);
 
         // Opportunistic promotion: std::shared_mutex has no atomic
         // shared->exclusive upgrade, so we try to acquire the exclusive
         // lock without blocking. Between releasing the shared lock above
         // and this try_lock succeeding, another thread could run put(),
-        // evict `entry`, and free it -- so if we do get the exclusive
+        // evict `entry`, and free it -- `entry` is a dangling identity
+        // token at that point, not something we dereference again except
+        // for the address comparison below. If we do get the exclusive
         // lock, we MUST re-validate the entry is still present before
         // touching its prev/next pointers. If the try_lock fails, or
         // re-validation fails, we skip the reorder as a safe no-op:
