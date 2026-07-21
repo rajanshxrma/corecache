@@ -58,7 +58,7 @@ struct Entry : Policy::Node {
 template <typename Key, typename Value, typename Policy, typename Hash = std::hash<Key>>
 class Shard {
 public:
-    Shard(std::size_t capacity, CacheStats& stats) : policy_(capacity), stats_(stats) {}
+    explicit Shard(std::size_t capacity) : policy_(capacity) {}
 
     Shard(const Shard&) = delete;
     Shard& operator=(const Shard&) = delete;
@@ -172,11 +172,26 @@ public:
         map_.clear();
     }
 
+    // Per-shard hit/miss/eviction counters. Cache::stats() sums these across
+    // all shards on demand.
+    //
+    // Deliberately NOT a reference to one CacheStats instance shared by
+    // every shard: an earlier version did exactly that, and every shard's
+    // get()/put() -- regardless of which shard, i.e. regardless of key --
+    // ended up doing atomic fetch_add on the same handful of cache lines.
+    // That's an accidental point of cross-shard contention that has nothing
+    // to do with mutexes but defeats sharding just the same (cache-line
+    // ping-pong across cores), and it measurably tanked multi-threaded
+    // throughput -- see the README's benchmarking section for the before/
+    // after numbers. Keeping counters per-shard means only threads
+    // contending on the SAME shard ever touch the same cache line.
+    [[nodiscard]] const CacheStats& local_stats() const noexcept { return stats_; }
+
 private:
     mutable std::shared_mutex mutex_;
     std::unordered_map<Key, std::unique_ptr<Entry<Key, Value, Policy>>, Hash> map_;
     Policy policy_;
-    CacheStats& stats_;
+    CacheStats stats_;
 };
 
 }  // namespace corecache

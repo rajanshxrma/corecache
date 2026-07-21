@@ -57,7 +57,7 @@ public:
         const std::size_t remainder = capacity % shard_count;
         for (std::size_t i = 0; i < shard_count; ++i) {
             const std::size_t shard_capacity = base + (i < remainder ? 1 : 0);
-            shards_.push_back(std::make_unique<ShardT>(shard_capacity, stats_));
+            shards_.push_back(std::make_unique<ShardT>(shard_capacity));
         }
     }
 
@@ -123,7 +123,26 @@ public:
         }
     }
 
-    [[nodiscard]] const Stats& stats() const noexcept { return stats_; }
+    // Sums each shard's local counters into one aggregate view. Cheap
+    // relative to get()/put() (O(shard_count), not called from any hot
+    // path), and it's what lets counters live per-shard -- see the
+    // false-sharing note on Shard::local_stats() -- while still presenting
+    // as a single Stats object per the public API.
+    [[nodiscard]] const Stats& stats() const noexcept {
+        uint64_t hits = 0;
+        uint64_t misses = 0;
+        uint64_t evictions = 0;
+        for (const auto& shard : shards_) {
+            const CacheStats& local = shard->local_stats();
+            hits += local.hits.load(std::memory_order_relaxed);
+            misses += local.misses.load(std::memory_order_relaxed);
+            evictions += local.evictions.load(std::memory_order_relaxed);
+        }
+        stats_.hits.store(hits, std::memory_order_relaxed);
+        stats_.misses.store(misses, std::memory_order_relaxed);
+        stats_.evictions.store(evictions, std::memory_order_relaxed);
+        return stats_;
+    }
 
 private:
     static std::size_t default_shard_count() {
@@ -138,7 +157,7 @@ private:
     std::size_t capacity_;
     Hash hash_{};
     std::vector<std::unique_ptr<ShardT>> shards_;
-    Stats stats_;
+    mutable Stats stats_;
 };
 
 }  // namespace corecache
