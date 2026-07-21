@@ -21,14 +21,20 @@ namespace corecache::detail {
 // design choice.
 //
 // The pre-C++20 free functions -- deprecated by the standard in favor of
-// atomic<T>, but still implemented by this libc++ and confirmed to compile
-// warning-free even under -Wall -Wextra -Wpedantic -Wdeprecated-declarations
-// -Werror -- provide the same atomicity guarantee this design relies on:
-// every load/store hands back a fully-formed shared_ptr, so there are no
-// torn reads, regardless of whether the implementation is internally
-// lock-free. On this platform it is not: is_lock_free() correctly reports
-// false via this path, which corecache surfaces at startup rather than
-// assuming either way.
+// atomic<T>, but still implemented by every libc++/libstdc++ this project
+// has been built against -- provide the same atomicity guarantee this
+// design relies on: every load/store hands back a fully-formed shared_ptr,
+// so there are no torn reads, regardless of whether the implementation is
+// internally lock-free. On the primary dev machine it is not: is_lock_free()
+// correctly reports false via this path, which corecache surfaces at
+// startup rather than assuming either way.
+//
+// Being deprecated, these calls trigger -Wdeprecated-declarations, which
+// -Werror (both locally and in CI) turns into a hard error. That warning is
+// suppressed at exactly these three call sites, and nowhere else in the
+// codebase -- this is a deliberate, scoped acknowledgment of the deprecated
+// API this class exists specifically to wrap, not a blanket silencing of
+// real deprecation warnings elsewhere.
 template <typename T>
 class AtomicSharedPtr {
   public:
@@ -39,15 +45,38 @@ class AtomicSharedPtr {
     AtomicSharedPtr& operator=(const AtomicSharedPtr&) = delete;
 
     std::shared_ptr<T> load(std::memory_order order = std::memory_order_seq_cst) const noexcept {
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
         return std::atomic_load_explicit(&value_, order);
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     }
 
     void store(std::shared_ptr<T> desired,
                std::memory_order order = std::memory_order_seq_cst) noexcept {
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
         std::atomic_store_explicit(&value_, std::move(desired), order);
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
     }
 
-    [[nodiscard]] bool is_lock_free() const noexcept { return std::atomic_is_lock_free(&value_); }
+    [[nodiscard]] bool is_lock_free() const noexcept {
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wdeprecated-declarations"
+#endif
+        return std::atomic_is_lock_free(&value_);
+#if defined(__clang__) || defined(__GNUC__)
+#pragma GCC diagnostic pop
+#endif
+    }
 
   private:
     mutable std::shared_ptr<T> value_;
