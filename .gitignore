@@ -1,0 +1,13 @@
+build/
+build-*/
+out/
+*.o
+*.obj
+*.a
+*.dylib
+*.so
+*.exe
+.cache/
+compile_commands.json
+.DS_Store
+CMakeUserPresets.json
